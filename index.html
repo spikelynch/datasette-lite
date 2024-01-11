@@ -159,7 +159,15 @@ datasetteWorker.onmessage = (event) => {
 };
 </script>
 
+<form id="hack-omnisearch">
+  <p style="padding: 1em">
+    <input name="omnisearch" id="omnisearch-param" type="text" size="20" value="" />
+    <button type="button" id="omnisearch-go">Search</button>
+  </p>
+</form>
+
 <div id="output"></div>
+
 
 <form id="load-custom">
   <p style="padding: 1em">
@@ -210,6 +218,7 @@ function isFragmentLink(url) {
 
 function loadPath(path) {
   path = path.split("#")[0].replace("http://localhost", "");
+  console.log("sending path to datasetteWorker:");
   console.log({path});
   history.pushState({path: path}, path, "#" + path);
   useAnalytics && plausible('pageview', {u: location.href.replace('?', '').replace('#', '/')});
@@ -242,6 +251,7 @@ output.addEventListener('click', (ev => {
 }), true);
 
 output.addEventListener('submit', (ev => {
+  console.log("form submit");
   console.log(ev);
   ev.stopPropagation();
   ev.preventDefault();
@@ -289,6 +299,8 @@ const fileTypes = [
   { id: "sql-url", prompt: "Enter a full URL to a SQL file", param: "sql" },
 ];
 
+
+
 fileTypes.forEach((fileType) => {
   document
     .querySelector(`#load-custom button.${fileType.id}`)
@@ -311,6 +323,23 @@ fileTypes.forEach((fileType) => {
       }
     });
 });
+
+document.querySelector("#omnisearch-go")
+  .addEventListener("click", async function(ev) {
+    ev.preventDefault();
+    console.log(ev.target);
+    const search_param = document.querySelector("#omnisearch-param").value;
+    if( search_param ) {
+      let omnisearch_sql=`select+entities.id,+entities.name,+properties.value+from+entities+inner+join+properties+on+properties.source+=+entities.id+where+properties.value+like+"%${search_param}%"`;
+      console.log(omnisearch_sql);
+      if( location.hash ) {
+        const p = location.hash.replace(/^\#/, '') + '?sql=' + omnisearch_sql;
+        datasetteWorker.postMessage({path:p});
+      }
+    } else {
+      console.log("Empty search");
+    }
+  });
 
 </script>
 </body>
